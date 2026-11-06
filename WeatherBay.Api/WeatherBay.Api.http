@@ -1,6 +1,43 @@
-@WeatherBay.Api_HostAddress = http://localhost:5128
+@WeatherBay.Api_HostAddress = https://localhost:7021
 
-GET {{WeatherBay.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Valid measurement
+POST {{WeatherBay.Api_HostAddress}}/api/measurements
+Content-Type: application/json
 
-###
+{
+  "deviceId": "WB-001",
+  "timestamp": "2026-10-26T18:30:00Z",
+  "temperatureF": 78.5,
+  "humidityPercent": 62.3,
+  "windSpeedMph": 8.2,
+  "rainfallRateInHr": 0.15,
+  "rainfallPH": 6.4
+}
+
+### Dry interval with no valid pH reading
+POST {{WeatherBay.Api_HostAddress}}/api/measurements
+Content-Type: application/json
+
+{
+  "deviceId": "WB-001",
+  "timestamp": "2026-10-26T18:30:00Z",
+  "temperatureF": 78.5,
+  "humidityPercent": 62.3,
+  "windSpeedMph": 8.2,
+  "rainfallRateInHr": 0,
+  "rainfallPH": null
+}
+
+### Invalid humidity returns HTTP 400
+POST {{WeatherBay.Api_HostAddress}}/api/measurements
+Content-Type: application/json
+
+{
+  "deviceId": "WB-001",
+  "timestamp": "2026-10-26T18:30:00Z",
+  "temperatureF": 78.5,
+  "humidityPercent": 101,
+  "windSpeedMph": 8.2,
+  "rainfallRateInHr": 0.15,
+  "rainfallPH": 6.4
+}
