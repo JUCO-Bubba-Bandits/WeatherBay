@@ -25,5 +25,6 @@ app.MapGet("/", () => Results.Ok(new
     storageEnabled = true
 }));
 app.MapControllers();
+app.MapGet("/api/devices", (MeasurementStore store) => Results.Ok(store.GetDeviceIds()));
 
 app.Run();

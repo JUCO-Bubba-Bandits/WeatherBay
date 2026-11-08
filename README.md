@@ -99,6 +99,10 @@ Send `GET /api/measurements/history?deviceId=WB-001&from=2026-10-26T18:30:00Z&to
 
 The response is **HTTP 200** with an array of readings in ascending measurement time, including the start and excluding the end. An empty range of results returns `[]`, including when the device has no saved readings. Missing parameters, invalid timestamps, and a start at or after the end return **HTTP 400**.
 
+## Devices
+
+Send `GET /api/devices` to populate the dashboard's bay selector. It returns **HTTP 200** with a sorted array of unique device IDs, for example `["WB-001", "WB-002"]`. A bay appears once it has a saved measurement. An empty database returns `[]`.
+
 ## Source control
 
 Build output, Visual Studio user files, local configuration, and certificate files are excluded by `.gitignore`. Keep future API keys and other secrets outside tracked files, using development User Secrets or environment variables.

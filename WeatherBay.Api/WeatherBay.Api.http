@@ -1,5 +1,9 @@
 @WeatherBay.Api_HostAddress = https://localhost:7021
 
+### Bays with saved readings
+GET {{WeatherBay.Api_HostAddress}}/api/devices
+Accept: application/json
+
 ### Saved readings for WB-001 (send the valid POST examples first)
 GET {{WeatherBay.Api_HostAddress}}/api/measurements/history?deviceId=WB-001&from=2026-10-26T18:30:00Z&to=2026-10-26T19:00:00Z
 Accept: application/json

@@ -38,6 +38,19 @@ public sealed class MeasurementStore(string databasePath)
         command.ExecuteNonQuery();
     }
 
+    public IReadOnlyList<string> GetDeviceIds()
+    {
+        using var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT DISTINCT DeviceId FROM Measurements ORDER BY DeviceId;";
+        using var reader = command.ExecuteReader();
+        var deviceIds = new List<string>();
+        while (reader.Read())
+            deviceIds.Add(reader.GetString(0));
+        return deviceIds;
+    }
+
     public MeasurementRequest? GetLatest(string deviceId)
     {
         using var connection = new SqliteConnection(connectionString);
