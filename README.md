@@ -27,6 +27,10 @@ The repository selects SDK 9.0.316 in `global.json` and targets .NET 8. Install 
 
 If HTTPS needs setup, run `dotnet dev-certs https --trust` and approve the local development certificate prompt.
 
+## Local dashboard
+
+Open `https://localhost:7021/dashboard` while the API is running. Select a bay and choose **Show latest** to see its newest saved reading and measurement time in UTC. Bays appear after their first saved reading. Choose **Show latest** again to refresh.
+
 ## Measurement request
 
 Send `POST /api/measurements` with `Content-Type: application/json`.

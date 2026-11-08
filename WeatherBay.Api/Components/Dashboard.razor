@@ -1,0 +1,88 @@
+@page "/dashboard"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
+@using System.Globalization
+@using WeatherBay.Api.Models
+@using WeatherBay.Api.Storage
+@inject MeasurementStore Store
+
+<PageTitle>WeatherBay Dashboard</PageTitle>
+
+<main class="dashboard">
+    <header class="hero">
+        <p class="eyebrow">WeatherBay</p>
+        <h1>Latest conditions</h1>
+        <p>View the most recent saved readings from your bays.</p>
+    </header>
+
+    @if (deviceIds.Count == 0)
+    {
+        <section class="panel empty">
+            <h2>No bays reporting yet</h2>
+            <p>Send a valid measurement to the API, then reload this page.</p>
+        </section>
+    }
+    else
+    {
+        <form class="panel controls" method="get" action="/dashboard">
+            <div>
+                <label for="deviceId">Weather bay</label>
+                <select id="deviceId" name="deviceId">
+                    @foreach (var id in deviceIds)
+                    {
+                        <option value="@id" selected="@(id == selectedDeviceId)">@id</option>
+                    }
+                </select>
+            </div>
+            <button type="submit">Show latest</button>
+        </form>
+
+        @if (reading is not null)
+        {
+            <section aria-labelledby="reading-heading">
+                <div class="reading-heading">
+                    <h2 id="reading-heading">Bay @reading.DeviceId</h2>
+                    <p>Measured <time datetime="@reading.Timestamp.ToString("O", CultureInfo.InvariantCulture)">@reading.Timestamp.ToString("MMM d, yyyy 'at' HH:mm:ss 'UTC'", CultureInfo.InvariantCulture)</time></p>
+                </div>
+                <dl class="metrics">
+                    <div class="panel"><dt>Temperature</dt><dd>@Format(reading.TemperatureF) <span>°F</span></dd></div>
+                    <div class="panel"><dt>Humidity</dt><dd>@Format(reading.HumidityPercent) <span>%</span></dd></div>
+                    <div class="panel"><dt>Wind speed</dt><dd>@Format(reading.WindSpeedMph) <span>mph</span></dd></div>
+                    <div class="panel"><dt>Rainfall rate</dt><dd>@Format(reading.RainfallRateInHr) <span>in/hr</span></dd></div>
+                    <div class="panel">
+                        <dt>Rainfall pH</dt>
+                        @if (reading.RainfallPH is double ph)
+                        {
+                            <dd>@Format(ph)</dd>
+                        }
+                        else
+                        {
+                            <dd class="unavailable">Unavailable</dd>
+                        }
+                    </div>
+                </dl>
+            </section>
+        }
+    }
+</main>
+
+@code {
+    [SupplyParameterFromQuery(Name = "deviceId")]
+    public string? DeviceId { get; set; }
+
+    private IReadOnlyList<string> deviceIds = [];
+    private string? selectedDeviceId;
+    private MeasurementRequest? reading;
+
+    protected override void OnParametersSet()
+    {
+        deviceIds = Store.GetDeviceIds();
+        selectedDeviceId = DeviceId is not null && deviceIds.Contains(DeviceId)
+            ? DeviceId
+            : deviceIds.FirstOrDefault();
+        reading = selectedDeviceId is null ? null : Store.GetLatest(selectedDeviceId);
+    }
+
+    private static string Format(double value) =>
+        value.ToString("G", CultureInfo.InvariantCulture);
+}
