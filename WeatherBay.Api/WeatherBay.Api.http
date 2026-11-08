@@ -20,7 +20,7 @@ Content-Type: application/json
 
 {
   "deviceId": "WB-001",
-  "timestamp": "2026-10-26T18:30:00Z",
+  "timestamp": "2026-10-26T18:40:00Z",
   "temperatureF": 78.5,
   "humidityPercent": 62.3,
   "windSpeedMph": 8.2,
@@ -34,7 +34,7 @@ Content-Type: application/json
 
 {
   "deviceId": "WB-001",
-  "timestamp": "2026-10-26T18:30:00Z",
+  "timestamp": "2026-10-26T18:40:00Z",
   "temperatureF": 78.5,
   "humidityPercent": 101,
   "windSpeedMph": 8.2,

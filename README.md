@@ -5,8 +5,8 @@ An ASP.NET Core Web API targeting .NET 8.
 ## Current scope
 
 - HTTPS development profile
-- `POST /api/measurements` validates and acknowledges one measurement
-- No database, authentication, dashboard, or duplicate protection yet
+- `POST /api/measurements` validates and stores one measurement in SQLite
+- Identical retries are acknowledged without inserting another row
 - The sample `/weatherforecast` endpoint has been removed
 
 ## Open and run
@@ -63,8 +63,9 @@ A valid request returns **HTTP 200**:
 ```json
 {
   "status": "received",
-  "stored": false,
-  "message": "Measurement validated and received only. It has not been stored; retain the device's local copy.",
+  "stored": true,
+  "duplicate": false,
+  "message": "Measurement stored.",
   "measurement": {
     "deviceId": "WB-001",
     "timestamp": "2026-10-26T18:30:00+00:00",
@@ -79,7 +80,9 @@ A valid request returns **HTTP 200**:
 
 The measurement timestamp represents the same instant; UTC may serialize as `+00:00` instead of `Z`. An unavailable pH is echoed as `null`.
 
-**This receipt does not confirm durable storage.** Keep buffered measurements on the device. Submissions are not persisted and repeat submissions are not deduplicated at this stage.
+A receipt with `stored: true` confirms the measurement is in SQLite. An identical retry returns HTTP 200 with `duplicate: true`. If a submission uses the same device ID and instant with different values, the API returns HTTP 409 and preserves the original reading. Timestamp offsets are normalized for duplicate detection.
+
+The default database is `WeatherBay.Api/App_Data/weatherbay.db` when run from Visual Studio. Set `Storage__DatabasePath` to override the path. Relative paths resolve from the API content root. The default database directory is ignored by Git.
 
 Missing or invalid fields and malformed JSON return **HTTP 400** with standard validation problem details and an `errors` object. Unsupported content types return **HTTP 415**.
 

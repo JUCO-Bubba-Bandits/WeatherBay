@@ -1,21 +1,28 @@
 using Microsoft.AspNetCore.Mvc;
 using WeatherBay.Api.Models;
+using WeatherBay.Api.Storage;
 
 namespace WeatherBay.Api.Controllers;
 
 [ApiController]
 [Route("api/measurements")]
-public sealed class MeasurementsController : ControllerBase
+public sealed class MeasurementsController(MeasurementStore store) : ControllerBase
 {
     [HttpPost]
     public IActionResult Receive([FromBody] MeasurementRequest measurement)
     {
-        // A receipt confirms validation only; durable storage is a later stage.
+        var result = store.Save(measurement);
+        if (result == MeasurementSaveResult.Conflict)
+            return Problem(statusCode: StatusCodes.Status409Conflict,
+                detail: "A different measurement is already stored for this device and timestamp.");
+
+        var duplicate = result == MeasurementSaveResult.Duplicate;
         return Ok(new
         {
             status = "received",
-            stored = false,
-            message = "Measurement validated and received only. It has not been stored; retain the device's local copy.",
+            stored = true,
+            duplicate,
+            message = duplicate ? "Measurement was already stored." : "Measurement stored.",
             measurement
         });
     }

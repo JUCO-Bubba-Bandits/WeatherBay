@@ -9,6 +9,7 @@ TestResults/
 *.log
 
 # Local configuration and credentials
+/WeatherBay.Api/App_Data/
 .env
 .env.*
 !.env.example
