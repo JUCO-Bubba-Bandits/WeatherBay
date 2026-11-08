@@ -93,6 +93,12 @@ Send `GET /api/measurements/latest?deviceId=WB-001` to the central API. The resp
 
 A missing or blank `deviceId` returns **HTTP 400**. A device with no saved readings returns **HTTP 404**.
 
+## Measurement history
+
+Send `GET /api/measurements/history?deviceId=WB-001&from=2026-10-26T18:30:00Z&to=2026-10-26T19:00:00Z`. Both bounds require ISO 8601 timestamps with seconds and an explicit UTC offset or `Z`. URL-encode a positive offset's `+` as `%2B`.
+
+The response is **HTTP 200** with an array of readings in ascending measurement time, including the start and excluding the end. An empty range of results returns `[]`, including when the device has no saved readings. Missing parameters, invalid timestamps, and a start at or after the end return **HTTP 400**.
+
 ## Source control
 
 Build output, Visual Studio user files, local configuration, and certificate files are excluded by `.gitignore`. Keep future API keys and other secrets outside tracked files, using development User Secrets or environment variables.

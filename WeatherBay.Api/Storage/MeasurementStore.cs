@@ -53,10 +53,35 @@ public sealed class MeasurementStore(string databasePath)
             """;
         command.Parameters.AddWithValue("$deviceId", deviceId);
         using var reader = command.ExecuteReader();
-        if (!reader.Read())
-            return null;
+        return reader.Read() ? ReadMeasurement(reader) : null;
+    }
 
-        return new MeasurementRequest
+    public IReadOnlyList<MeasurementRequest> GetHistory(string deviceId, DateTimeOffset from, DateTimeOffset to)
+    {
+        using var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT DeviceId, TimestampUtcTicks, TemperatureF, HumidityPercent,
+                   WindSpeedMph, RainfallRateInHr, RainfallPH
+            FROM Measurements
+            WHERE DeviceId = $deviceId
+                AND TimestampUtcTicks >= $from
+                AND TimestampUtcTicks < $to
+            ORDER BY TimestampUtcTicks ASC;
+            """;
+        command.Parameters.AddWithValue("$deviceId", deviceId);
+        command.Parameters.AddWithValue("$from", from.UtcTicks);
+        command.Parameters.AddWithValue("$to", to.UtcTicks);
+        using var reader = command.ExecuteReader();
+        var measurements = new List<MeasurementRequest>();
+        while (reader.Read())
+            measurements.Add(ReadMeasurement(reader));
+        return measurements;
+    }
+
+    private static MeasurementRequest ReadMeasurement(SqliteDataReader reader) =>
+        new()
         {
             DeviceId = reader.GetString(0),
             Timestamp = new DateTimeOffset(reader.GetInt64(1), TimeSpan.Zero),
@@ -66,8 +91,6 @@ public sealed class MeasurementStore(string databasePath)
             RainfallRateInHr = reader.GetDouble(5),
             RainfallPH = reader.IsDBNull(6) ? null : reader.GetDouble(6)
         };
-    }
-
     public MeasurementSaveResult Save(MeasurementRequest measurement)
     {
         using var connection = new SqliteConnection(connectionString);
