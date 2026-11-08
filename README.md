@@ -7,6 +7,7 @@ An ASP.NET Core Web API targeting .NET 8.
 - HTTPS development profile
 - `POST /api/measurements` validates and stores one measurement in SQLite
 - Identical retries are acknowledged without inserting another row
+- `GET /api/measurements/latest?deviceId=WB-001` reads the newest stored measurement for a device
 - The sample `/weatherforecast` endpoint has been removed
 
 ## Open and run
@@ -85,6 +86,12 @@ A receipt with `stored: true` confirms the measurement is in SQLite. An identica
 The default database is `WeatherBay.Api/App_Data/weatherbay.db` when run from Visual Studio. Set `Storage__DatabasePath` to override the path. Relative paths resolve from the API content root. The default database directory is ignored by Git.
 
 Missing or invalid fields and malformed JSON return **HTTP 400** with standard validation problem details and an `errors` object. Unsupported content types return **HTTP 415**.
+
+## Latest measurement
+
+Send `GET /api/measurements/latest?deviceId=WB-001` to the central API. The response is **HTTP 200** with the same seven measurement fields used by POST, including explicit `null` for an unavailable pH reading. The timestamp is returned in UTC. Readings are ordered by measurement timestamp, so an older upload arriving later does not change the latest result.
+
+A missing or blank `deviceId` returns **HTTP 400**. A device with no saved readings returns **HTTP 404**.
 
 ## Source control
 

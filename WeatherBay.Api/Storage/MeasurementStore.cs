@@ -38,6 +38,36 @@ public sealed class MeasurementStore(string databasePath)
         command.ExecuteNonQuery();
     }
 
+    public MeasurementRequest? GetLatest(string deviceId)
+    {
+        using var connection = new SqliteConnection(connectionString);
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT DeviceId, TimestampUtcTicks, TemperatureF, HumidityPercent,
+                   WindSpeedMph, RainfallRateInHr, RainfallPH
+            FROM Measurements
+            WHERE DeviceId = $deviceId
+            ORDER BY TimestampUtcTicks DESC
+            LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("$deviceId", deviceId);
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return null;
+
+        return new MeasurementRequest
+        {
+            DeviceId = reader.GetString(0),
+            Timestamp = new DateTimeOffset(reader.GetInt64(1), TimeSpan.Zero),
+            TemperatureF = reader.GetDouble(2),
+            HumidityPercent = reader.GetDouble(3),
+            WindSpeedMph = reader.GetDouble(4),
+            RainfallRateInHr = reader.GetDouble(5),
+            RainfallPH = reader.IsDBNull(6) ? null : reader.GetDouble(6)
+        };
+    }
+
     public MeasurementSaveResult Save(MeasurementRequest measurement)
     {
         using var connection = new SqliteConnection(connectionString);

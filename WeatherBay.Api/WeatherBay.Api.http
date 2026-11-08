@@ -1,5 +1,9 @@
 @WeatherBay.Api_HostAddress = https://localhost:7021
 
+### Latest saved reading for WB-001 (send a valid POST below first)
+GET {{WeatherBay.Api_HostAddress}}/api/measurements/latest?deviceId=WB-001
+Accept: application/json
+
 ### Valid measurement
 POST {{WeatherBay.Api_HostAddress}}/api/measurements
 Content-Type: application/json

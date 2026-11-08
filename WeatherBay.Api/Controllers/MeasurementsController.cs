@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using WeatherBay.Api.Models;
 using WeatherBay.Api.Storage;
@@ -8,6 +9,17 @@ namespace WeatherBay.Api.Controllers;
 [Route("api/measurements")]
 public sealed class MeasurementsController(MeasurementStore store) : ControllerBase
 {
+    [HttpGet("latest")]
+    public ActionResult<MeasurementRequest> GetLatest([FromQuery, Required] string deviceId)
+    {
+        var measurement = store.GetLatest(deviceId);
+        if (measurement is null)
+            return Problem(statusCode: StatusCodes.Status404NotFound,
+                detail: "No saved measurements were found for this device.");
+
+        return Ok(measurement);
+    }
+
     [HttpPost]
     public IActionResult Receive([FromBody] MeasurementRequest measurement)
     {
