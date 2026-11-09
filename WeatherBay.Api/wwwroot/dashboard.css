@@ -83,11 +83,17 @@ h1, h2, p, figure, dl, dd { margin: 0; }
 .history-heading { display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 12px; }
 .history-heading h2, .detail-panel h2 { font-size: 21px; }
 .panel-subtitle, figcaption { color: var(--muted); font-size: 13px; margin-top: 7px; }
-.range-options { display: flex; gap: 8px; }
+.range-options, .custom-range { display: flex; flex-wrap: wrap; gap: 8px; }
 .range-options button, .manage-button { border: 0; color: #456379; font-size: 13px; font-weight: 700; }
-.range-options button { padding: 9px 20px; background: #f0f4f6; border-radius: 999px; }
+.range-options button { padding: 9px 20px; background: #f0f4f6; border-radius: 999px; cursor: pointer; }
+.range-options button:hover { background: #dcefeb; }
 .range-options .range-selected { color: #08746e; background: #e6f4f2; }
+.custom-range { margin-top: 12px; align-items: end; gap: 10px; }
+.custom-range label { display: grid; gap: 4px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.custom-range input, .custom-range button { font: inherit; min-height: 34px; padding: 5px 8px; border: 1px solid #c6d5dd; border-radius: 6px; }
+.custom-range button { background: #e6f4f2; color: #08746e; cursor: pointer; font-weight: 700; }
 .history-chart { margin-top: 12px; }
+.history-empty { margin-top: 1rem; padding: 1.5rem; border-radius: 9px; background: #f2f5f8; color: var(--muted); text-align: center; }
 .history-chart svg { display: block; width: 100%; height: auto; }
 .chart-grid { fill: none; stroke: #dfe9ee; stroke-dasharray: 4 6; }
 .chart-trend { fill: none; stroke: #14a69d; stroke-width: 4; stroke-linejoin: round; }

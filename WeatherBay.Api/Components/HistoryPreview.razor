@@ -1,42 +1,182 @@
+@using Microsoft.AspNetCore.Components
+@using System.Globalization
+@using WeatherBay.Api.Models
+@using WeatherBay.Api.Storage
+@inject MeasurementStore Store
+
 <section class="panel history-panel" id="history" aria-labelledby="history-heading">
     <header class="history-heading">
         <div>
             <h2 id="history-heading">Measurement History</h2>
-            <p class="panel-subtitle">Temperature trend · illustrative readings</p>
+            <p class="panel-subtitle">Temperature trend · °F · UTC</p>
         </div>
-        <div class="range-options" aria-label="Planned history ranges">
-            <button class="range-selected" type="button" disabled>Last 24h</button>
-            <button type="button" disabled>7 days</button>
-        </div>
+        @if (DeviceId is not null)
+        {
+            <form class="range-options" method="get" action="/dashboard#history" aria-label="History time range">
+                <input type="hidden" name="deviceId" value="@DeviceId" />
+                @foreach (var (key, label) in Presets)
+                {
+                    <button class="@(Range == key ? "range-selected" : null)" type="submit" name="historyDays" value="@key"
+                            aria-pressed="@(Range == key ? "true" : "false")">@label</button>
+                }
+            </form>
+        }
     </header>
 
-    <figure class="history-chart">
-        <svg viewBox="0 0 830 280" role="img" aria-labelledby="trend-title trend-desc">
-            <title id="trend-title">Illustrative temperature trend</title>
-            <desc id="trend-desc">Sample temperatures dip in the morning, rise through the afternoon, then cool in the evening.</desc>
-            <defs>
-                <linearGradient id="history-fill" x2="0" y2="100%">
-                    <stop offset="0%" stop-color="#14a69d" stop-opacity=".20" />
-                    <stop offset="100%" stop-color="#14a69d" stop-opacity="0" />
-                </linearGradient>
-            </defs>
-            <g class="chart-grid">
-                <path d="M38 26H810 M38 77H810 M38 128H810 M38 179H810 M38 230H810" />
-            </g>
-            <path fill="url(#history-fill)" d="M38 179 115 200 192 220 269 189 346 149 424 98 501 77 578 46 656 56 733 77 810 92V230H38Z" />
-            <path class="chart-trend" d="M38 179 115 200 192 220 269 189 346 149 424 98 501 77 578 46 656 56 733 77 810 92" />
-            <g class="chart-points">
-                <circle cx="38" cy="179" r="5" /><circle cx="424" cy="98" r="5" /><circle cx="810" cy="92" r="5" />
-            </g>
-            <g class="chart-labels">
-                <text x="0" y="30">85°</text><text x="0" y="81">80°</text><text x="0" y="132">75°</text>
-                <text x="0" y="183">70°</text><text x="0" y="234">65°</text>
-            </g>
-            <g class="chart-labels" text-anchor="middle">
-                <text x="38" y="263">12 AM</text><text x="192" y="263">4 AM</text><text x="346" y="263">8 AM</text>
-                <text x="501" y="263">12 PM</text><text x="656" y="263">4 PM</text><text x="806" y="263">8 PM</text>
-            </g>
-        </svg>
-        <figcaption>Date selection and saved-reading charts are planned.</figcaption>
-    </figure>
+    @if (DeviceId is not null)
+    {
+        <form class="custom-range" method="get" action="/dashboard#history" aria-label="Custom history date range">
+            <input type="hidden" name="deviceId" value="@DeviceId" />
+            <input type="hidden" name="historyDays" value="custom" />
+            <label for="historyFrom">From (UTC)
+                <input type="date" id="historyFrom" name="historyFrom" value="@FromDate" required />
+            </label>
+            <label for="historyTo">Through (UTC)
+                <input type="date" id="historyTo" name="historyTo" value="@ToDate" required />
+            </label>
+            <button type="submit">Apply dates</button>
+            @if (Range == "custom" && rangeError is null)
+            {
+                <span class="panel-subtitle">Custom range active</span>
+            }
+        </form>
+    }
+
+    @if (rangeError is not null)
+    {
+        <p class="history-empty" role="alert">@rangeError</p>
+    }
+    else if (readings.Count == 0)
+    {
+        <p class="history-empty">
+            @(DeviceId is null ? "No bays have saved readings yet." : "No temperature readings in this range.")
+        </p>
+    }
+    else
+    {
+        <figure class="history-chart">
+            <svg viewBox="0 0 830 280" role="img" aria-labelledby="trend-title">
+                <title id="trend-title">Temperature history for @DeviceId</title>
+                <g class="chart-grid">
+                    <path d="M64 26H784 M64 77H784 M64 128H784 M64 179H784 M64 230H784" />
+                </g>
+                <g class="chart-labels" text-anchor="end">
+                    @for (var tick = 0; tick <= 4; tick++)
+                    {
+                        var fraction = tick / 4.0;
+                        var value = (1 - fraction) * maximum + fraction * minimum;
+                        <g><text x="55" y="@(30 + tick * 51)">@(value.ToString("G4", CultureInfo.InvariantCulture))°</text></g>
+                    }
+                </g>
+                <g class="chart-labels" text-anchor="middle">
+                    @for (var tick = 0; tick <= 4; tick++)
+                    {
+                        var time = from.AddTicks((to - from).Ticks * tick / 4);
+                        <g><text x="@(64 + tick * 180)" y="263">@time.ToString(AxisFormat, CultureInfo.InvariantCulture)</text></g>
+                    }
+                </g>
+                @if (readings.Count > 1)
+                {
+                    <polyline class="chart-trend" points="@points" />
+                }
+                @if (readings.Count <= 48)
+                {
+                    <g class="chart-points">
+                        @foreach (var measurement in readings)
+                        {
+                            <circle cx="@Coordinate(X(measurement))" cy="@Coordinate(Y(measurement))" r="4">
+                                <title>@measurement.Timestamp.ToString("MMM d, HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) · @measurement.TemperatureF.ToString("G", CultureInfo.InvariantCulture) °F</title>
+                            </circle>
+                        }
+                    </g>
+                }
+            </svg>
+            <figcaption>
+                @readings.Count @(readings.Count == 1 ? "reading" : "readings")
+                · @RangeCaption
+            </figcaption>
+        </figure>
+    }
 </section>
+
+@code {
+    [Parameter] public string? DeviceId { get; set; }
+    [Parameter] public string Range { get; set; } = "1";
+    [Parameter] public string? FromDate { get; set; }
+    [Parameter] public string? ToDate { get; set; }
+
+    private static readonly (string Key, string Label)[] Presets =
+        [("1", "Last 24h"), ("7", "7 days"), ("month", "1 month"), ("half-year", "6 months"), ("year", "1 year")];
+
+    private IReadOnlyList<MeasurementRequest> readings = [];
+    private DateTimeOffset from;
+    private DateTimeOffset to;
+    private double minimum;
+    private double maximum;
+    private double scale;
+    private string points = "";
+    private string? rangeError;
+    private string AxisFormat => (to - from).TotalDays <= 1 ? "HH:mm"
+        : (to - from).TotalDays >= 365 ? "MMM yy" : "MMM d";
+    private string RangeCaption => Range == "custom"
+        ? FormattableString.Invariant($"{from:MMM d, yyyy} through {to.AddDays(-1):MMM d, yyyy} UTC")
+        : FormattableString.Invariant($"{from:MMM d, yyyy HH:mm} to {to:MMM d, yyyy HH:mm} UTC");
+
+    protected override void OnParametersSet()
+    {
+        rangeError = null;
+        readings = [];
+        if (Range == "custom")
+        {
+            if (!DateOnly.TryParseExact(FromDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var start) ||
+                !DateOnly.TryParseExact(ToDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var end) ||
+                start > end || end == DateOnly.MaxValue)
+            {
+                rangeError = "Choose valid start and end dates, with the end on or after the start.";
+                return;
+            }
+
+            from = new DateTimeOffset(start.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            to = new DateTimeOffset(end.AddDays(1).ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+        }
+        else
+        {
+            to = DateTimeOffset.UtcNow;
+            from = Range switch
+            {
+                "7" => to.AddDays(-7),
+                "month" => to.AddMonths(-1),
+                "half-year" => to.AddMonths(-6),
+                "year" => to.AddYears(-1),
+                _ => to.AddDays(-1)
+            };
+        }
+        readings = DeviceId is null ? [] : Store.GetHistory(DeviceId, from, to);
+        if (readings.Count == 0)
+            return;
+
+        minimum = readings.Min(item => item.TemperatureF);
+        maximum = readings.Max(item => item.TemperatureF);
+        if (minimum == maximum && Math.Abs(minimum) < 1e12)
+        {
+            minimum -= 1;
+            maximum += 1;
+        }
+
+        // Scale before subtracting so even extreme finite readings yield valid coordinates.
+        scale = Math.Max(1, Math.Max(Math.Abs(minimum), Math.Abs(maximum)));
+        points = string.Join(" ", readings.Select(item => $"{Coordinate(X(item))},{Coordinate(Y(item))}"));
+    }
+
+    private double X(MeasurementRequest item) =>
+        64 + 720 * (item.Timestamp - from).Ticks / (to - from).Ticks;
+
+    private double Y(MeasurementRequest item)
+    {
+        var span = maximum / scale - minimum / scale;
+        return span == 0 ? 128 : 230 - 204 * (item.TemperatureF / scale - minimum / scale) / span;
+    }
+
+    private static string Coordinate(double value) =>
+        value.ToString("0.###", CultureInfo.InvariantCulture);
+}

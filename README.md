@@ -31,7 +31,7 @@ If HTTPS needs setup, run `dotnet dev-certs https --trust` and approve the local
 
 Open `https://localhost:7021/dashboard` while the API is running. Select a bay and choose **Show latest** to see its newest saved reading and measurement time in UTC. Bays appear after their first saved reading. Choose **Show latest** again to refresh.
 
-The overview includes an illustrative temperature chart and placeholders for time ranges and alert management. The current reading cards and rainfall pH panel use saved data.
+Measurement History charts saved temperatures for the selected bay. Choose **Last 24h**, **7 days**, **1 month**, **6 months**, or **1 year** for a rolling window. For specific calendar days, enter **From** and **Through** dates and select **Apply dates**. Both dates are included in UTC. The chart shows an empty state when the range contains no readings.
 
 ## Measurement request
 

@@ -29,6 +29,12 @@
             @if (deviceIds.Count > 0)
             {
                 <form class="device-panel" method="get" action="/dashboard">
+                    <input type="hidden" name="historyDays" value="@HistoryRange" />
+                    @if (HistoryRange == "custom")
+                    {
+                        <input type="hidden" name="historyFrom" value="@HistoryFrom" />
+                        <input type="hidden" name="historyTo" value="@HistoryTo" />
+                    }
                     <label for="deviceId">Weather bay</label>
                     <select id="deviceId" name="deviceId">
                         @foreach (var id in deviceIds)
@@ -81,7 +87,8 @@
             </dl>
 
             <div class="details-grid">
-                <HistoryPreview />
+                <HistoryPreview DeviceId="@selectedDeviceId" Range="@HistoryRange"
+                                FromDate="@HistoryFrom" ToDate="@HistoryTo" />
 
                 <div class="side-panels">
                     <section class="panel detail-panel" id="alerts" aria-labelledby="alerts-heading">
@@ -116,6 +123,19 @@
 @code {
     [SupplyParameterFromQuery(Name = "deviceId")]
     public string? DeviceId { get; set; }
+
+    [SupplyParameterFromQuery(Name = "historyDays")]
+    public string? HistoryDays { get; set; }
+
+    [SupplyParameterFromQuery(Name = "historyFrom")]
+    public string? HistoryFrom { get; set; }
+
+    [SupplyParameterFromQuery(Name = "historyTo")]
+    public string? HistoryTo { get; set; }
+
+    private string HistoryRange => HistoryDays is "7" or "month" or "half-year" or "year" or "custom"
+        ? HistoryDays
+        : "1";
 
     private IReadOnlyList<string> deviceIds = [];
     private string? selectedDeviceId;
