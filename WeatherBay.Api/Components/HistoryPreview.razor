@@ -1,0 +1,42 @@
+<section class="panel history-panel" id="history" aria-labelledby="history-heading">
+    <header class="history-heading">
+        <div>
+            <h2 id="history-heading">Measurement History</h2>
+            <p class="panel-subtitle">Temperature trend · illustrative readings</p>
+        </div>
+        <div class="range-options" aria-label="Planned history ranges">
+            <button class="range-selected" type="button" disabled>Last 24h</button>
+            <button type="button" disabled>7 days</button>
+        </div>
+    </header>
+
+    <figure class="history-chart">
+        <svg viewBox="0 0 830 280" role="img" aria-labelledby="trend-title trend-desc">
+            <title id="trend-title">Illustrative temperature trend</title>
+            <desc id="trend-desc">Sample temperatures dip in the morning, rise through the afternoon, then cool in the evening.</desc>
+            <defs>
+                <linearGradient id="history-fill" x2="0" y2="100%">
+                    <stop offset="0%" stop-color="#14a69d" stop-opacity=".20" />
+                    <stop offset="100%" stop-color="#14a69d" stop-opacity="0" />
+                </linearGradient>
+            </defs>
+            <g class="chart-grid">
+                <path d="M38 26H810 M38 77H810 M38 128H810 M38 179H810 M38 230H810" />
+            </g>
+            <path fill="url(#history-fill)" d="M38 179 115 200 192 220 269 189 346 149 424 98 501 77 578 46 656 56 733 77 810 92V230H38Z" />
+            <path class="chart-trend" d="M38 179 115 200 192 220 269 189 346 149 424 98 501 77 578 46 656 56 733 77 810 92" />
+            <g class="chart-points">
+                <circle cx="38" cy="179" r="5" /><circle cx="424" cy="98" r="5" /><circle cx="810" cy="92" r="5" />
+            </g>
+            <g class="chart-labels">
+                <text x="0" y="30">85°</text><text x="0" y="81">80°</text><text x="0" y="132">75°</text>
+                <text x="0" y="183">70°</text><text x="0" y="234">65°</text>
+            </g>
+            <g class="chart-labels" text-anchor="middle">
+                <text x="38" y="263">12 AM</text><text x="192" y="263">4 AM</text><text x="346" y="263">8 AM</text>
+                <text x="501" y="263">12 PM</text><text x="656" y="263">4 PM</text><text x="806" y="263">8 PM</text>
+            </g>
+        </svg>
+        <figcaption>Date selection and saved-reading charts are planned.</figcaption>
+    </figure>
+</section>

@@ -6,65 +6,112 @@
 @using WeatherBay.Api.Storage
 @inject MeasurementStore Store
 
-<PageTitle>WeatherBay Dashboard</PageTitle>
+<PageTitle>Weather Overview | Weather Bay</PageTitle>
 
-<main class="dashboard">
-    <header class="hero">
-        <p class="eyebrow">WeatherBay</p>
-        <h1>Latest conditions</h1>
-        <p>View the most recent saved readings from your bays.</p>
-    </header>
+<div class="dashboard">
+    <aside class="sidebar" aria-label="Dashboard sidebar">
+        <a class="brand" href="/dashboard">
+            <svg viewBox="0 0 58 42" width="58" height="42" aria-hidden="true">
+                <circle cx="11" cy="12" r="11" fill="#f2bb67" />
+                <path d="M22 39a15 15 0 1 1 0-30 14 14 0 0 1 26 5 11 11 0 0 1 0 22H31a15 15 0 0 1-9 3Z" fill="#e9fbff" />
+            </svg>
+            <span>Weather Bay</span>
+        </a>
+        <p class="sidebar-label">Monitoring</p>
+        <nav aria-label="Monitoring">
+            <a class="active" href="#overview">Overview</a>
+            <a href="#history">History</a>
+            <a href="#alerts">Alerts &amp; Settings</a>
+        </nav>
 
-    @if (deviceIds.Count == 0)
-    {
-        <section class="panel empty">
-            <h2>No bays reporting yet</h2>
-            <p>Send a valid measurement to the API, then reload this page.</p>
-        </section>
-    }
-    else
-    {
-        <form class="panel controls" method="get" action="/dashboard">
+        <div class="device-section">
+            <p class="sidebar-label">Device</p>
+            @if (deviceIds.Count > 0)
+            {
+                <form class="device-panel" method="get" action="/dashboard">
+                    <label for="deviceId">Weather bay</label>
+                    <select id="deviceId" name="deviceId">
+                        @foreach (var id in deviceIds)
+                        {
+                            <option value="@id" selected="@(id == selectedDeviceId)">@id</option>
+                        }
+                    </select>
+                    <button type="submit">Show latest</button>
+                </form>
+            }
+            else
+            {
+                <p class="device-panel">No bays reporting yet</p>
+            }
+        </div>
+    </aside>
+
+    <main class="workspace" id="overview">
+        <header class="topbar">
             <div>
-                <label for="deviceId">Weather bay</label>
-                <select id="deviceId" name="deviceId">
-                    @foreach (var id in deviceIds)
-                    {
-                        <option value="@id" selected="@(id == selectedDeviceId)">@id</option>
-                    }
-                </select>
+                <h1>Weather Overview</h1>
+                <p>@(selectedDeviceId is null ? "Localized conditions from your weather bays" : $"Localized conditions from Weather Bay {selectedDeviceId}")</p>
             </div>
-            <button type="submit">Show latest</button>
-        </form>
+            <div class="status-group">
+                <span class="badge @(reading is null ? "" : "badge-saved")">@(reading is null ? "Awaiting readings" : "Reading available")</span>
+                @if (reading is not null)
+                {
+                    <span class="badge">
+                        Last: <time datetime="@reading.Timestamp.ToString("O", CultureInfo.InvariantCulture)">@reading.Timestamp.ToString("MMM d, h:mm tt 'UTC'", CultureInfo.InvariantCulture)</time>
+                    </span>
+                }
+            </div>
+        </header>
 
-        @if (reading is not null)
-        {
-            <section aria-labelledby="reading-heading">
-                <div class="reading-heading">
-                    <h2 id="reading-heading">Bay @reading.DeviceId</h2>
-                    <p>Measured <time datetime="@reading.Timestamp.ToString("O", CultureInfo.InvariantCulture)">@reading.Timestamp.ToString("MMM d, yyyy 'at' HH:mm:ss 'UTC'", CultureInfo.InvariantCulture)</time></p>
+        <div class="overview-grid">
+            <section class="hero" aria-labelledby="conditions-heading">
+                <div>
+                    <p class="eyebrow">Field conditions</p>
+                    <h2 id="conditions-heading">Current readings</h2>
+                    <p>@(reading is null ? "Send a measurement to see current conditions here." : "Latest saved measurements from the selected bay.")</p>
                 </div>
-                <dl class="metrics">
-                    <div class="panel"><dt>Temperature</dt><dd>@Format(reading.TemperatureF) <span>°F</span></dd></div>
-                    <div class="panel"><dt>Humidity</dt><dd>@Format(reading.HumidityPercent) <span>%</span></dd></div>
-                    <div class="panel"><dt>Wind speed</dt><dd>@Format(reading.WindSpeedMph) <span>mph</span></dd></div>
-                    <div class="panel"><dt>Rainfall rate</dt><dd>@Format(reading.RainfallRateInHr) <span>in/hr</span></dd></div>
-                    <div class="panel">
-                        <dt>Rainfall pH</dt>
-                        @if (reading.RainfallPH is double ph)
-                        {
-                            <dd>@Format(ph)</dd>
-                        }
-                        else
-                        {
-                            <dd class="unavailable">Unavailable</dd>
-                        }
-                    </div>
-                </dl>
+                <span class="hero-mark" aria-hidden="true">WB</span>
             </section>
-        }
-    }
-</main>
+
+            <dl class="metrics" aria-label="Latest measurements">
+                <MetricCard Label="Temperature" Value="@reading?.TemperatureF" Unit="°F" Symbol="°" Tone="temperature" />
+                <MetricCard Label="Relative humidity" Value="@reading?.HumidityPercent" Unit="%" Symbol="%" Tone="humidity" />
+                <MetricCard Label="Wind speed" Value="@reading?.WindSpeedMph" Unit="mph" Symbol="~" Tone="wind" />
+                <MetricCard Label="Rainfall rate" Value="@reading?.RainfallRateInHr" Unit="in/hr" Symbol="R" Tone="rain" />
+            </dl>
+
+            <div class="details-grid">
+                <HistoryPreview />
+
+                <div class="side-panels">
+                    <section class="panel detail-panel" id="alerts" aria-labelledby="alerts-heading">
+                        <h2 id="alerts-heading">Alerts &amp; Notifications</h2>
+                        <p class="panel-subtitle">Threshold-based email alerts</p>
+                        <p class="alert-status">Notification setup pending</p>
+                        <button class="manage-button" type="button" disabled>Manage thresholds <span aria-hidden="true">→</span></button>
+                    </section>
+
+                    <section class="panel detail-panel" aria-labelledby="experimental-heading">
+                        <h2 id="experimental-heading">Experimental Measurement</h2>
+                        <p class="panel-subtitle">Rainfall pH · optional test data</p>
+                        <div class="experimental-reading">
+                            @if (reading?.RainfallPH is double ph)
+                            {
+                                <strong>@ph.ToString("G", CultureInfo.InvariantCulture)</strong>
+                            }
+                            else
+                            {
+                                <span>Unavailable</span>
+                            }
+                            <span class="badge badge-research">Research / Testing Only</span>
+                        </div>
+                        <p class="panel-subtitle">Not a required system measurement</p>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
 
 @code {
     [SupplyParameterFromQuery(Name = "deviceId")]
@@ -82,7 +129,4 @@
             : deviceIds.FirstOrDefault();
         reading = selectedDeviceId is null ? null : Store.GetLatest(selectedDeviceId);
     }
-
-    private static string Format(double value) =>
-        value.ToString("G", CultureInfo.InvariantCulture);
 }
