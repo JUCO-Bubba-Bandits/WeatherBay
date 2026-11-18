@@ -30,6 +30,7 @@
             {
                 <form class="device-panel" method="get" action="/dashboard">
                     <input type="hidden" name="historyDays" value="@HistoryRange" />
+                    <input type="hidden" name="historyMetric" value="@HistoryMetric" />
                     @if (HistoryRange == "custom")
                     {
                         <input type="hidden" name="historyFrom" value="@HistoryFrom" />
@@ -88,7 +89,7 @@
 
             <div class="details-grid">
                 <HistoryPreview DeviceId="@selectedDeviceId" Range="@HistoryRange"
-                                FromDate="@HistoryFrom" ToDate="@HistoryTo" />
+                                FromDate="@HistoryFrom" ToDate="@HistoryTo" Metric="@HistoryMetric" />
 
                 <div class="side-panels">
                     <ThresholdPanel DeviceId="@selectedDeviceId" Reading="@reading" />
@@ -127,6 +128,9 @@
 
     [SupplyParameterFromQuery(Name = "historyTo")]
     public string? HistoryTo { get; set; }
+
+    [SupplyParameterFromQuery(Name = "historyMetric")]
+    public string? HistoryMetric { get; set; }
 
     private string HistoryRange => HistoryDays is "7" or "month" or "half-year" or "year" or "custom"
         ? HistoryDays

@@ -150,3 +150,10 @@ h1, h2, p, figure, dl, dd { margin: 0; }
 .threshold-editor input:focus-visible, .threshold-editor summary:focus-visible { outline: 3px solid #27adad; outline-offset: 3px; }
 .threshold-editor .manage-button { cursor: pointer; background: #c6efed; color: #163b4d; }
 .validation-errors, .validation-message { color: #a52b25; font-size: 14px; }
+
+.history-measurement { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 16px; }
+.history-measurement label { font-size: 13px; font-weight: 700; color: var(--muted); }
+.history-measurement select, .history-measurement button { max-width: 100%; min-width: 0; font: inherit; min-height: 36px; padding: 7px 10px; border: 1px solid #a7becb; border-radius: 6px; }
+.history-measurement select { background: #fff; color: #17384d; }
+.history-measurement option { background: #fff; color: #17384d; }
+.history-measurement button { background: #e6f4f2; color: #08746e; font-weight: 700; cursor: pointer; }

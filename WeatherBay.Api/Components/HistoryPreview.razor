@@ -8,12 +8,13 @@
     <header class="history-heading">
         <div>
             <h2 id="history-heading">Measurement History</h2>
-            <p class="panel-subtitle">Temperature trend · °F · UTC</p>
+            <p class="panel-subtitle">@Selected.Label trend · @Selected.Unit · UTC</p>
         </div>
         @if (DeviceId is not null)
         {
             <form class="range-options" method="get" action="/dashboard#history" aria-label="History time range">
                 <input type="hidden" name="deviceId" value="@DeviceId" />
+                <input type="hidden" name="historyMetric" value="@Selected.Key" />
                 @foreach (var (key, label) in Presets)
                 {
                     <button class="@(Range == key ? "range-selected" : null)" type="submit" name="historyDays" value="@key"
@@ -25,8 +26,26 @@
 
     @if (DeviceId is not null)
     {
+        <form class="history-measurement" method="get" action="/dashboard#history" aria-label="History measurement selection">
+            <input type="hidden" name="deviceId" value="@DeviceId" />
+            <input type="hidden" name="historyDays" value="@Range" />
+            @if (Range == "custom")
+            {
+                <input type="hidden" name="historyFrom" value="@FromDate" />
+                <input type="hidden" name="historyTo" value="@ToDate" />
+            }
+            <label for="historyMetric">Measurement</label>
+            <select id="historyMetric" name="historyMetric">
+                @foreach (var option in Measurements)
+                {
+                    <option value="@option.Key" selected="@(option.Key == Selected.Key)">@option.Label (@option.Unit)</option>
+                }
+            </select>
+            <button type="submit">Show measurement</button>
+        </form>
         <form class="custom-range" method="get" action="/dashboard#history" aria-label="Custom history date range">
             <input type="hidden" name="deviceId" value="@DeviceId" />
+                <input type="hidden" name="historyMetric" value="@Selected.Key" />
             <input type="hidden" name="historyDays" value="custom" />
             <label for="historyFrom">From (UTC)
                 <input type="date" id="historyFrom" name="historyFrom" value="@FromDate" required />
@@ -46,17 +65,17 @@
     {
         <p class="history-empty" role="alert">@rangeError</p>
     }
-    else if (readings.Count == 0)
+    else if (chartReadings.Count == 0)
     {
         <p class="history-empty">
-            @(DeviceId is null ? "No bays have saved readings yet." : "No temperature readings in this range.")
+            @(DeviceId is null ? "No bays have saved readings yet." : $"No {Selected.Label.ToLowerInvariant()} readings in this range.")
         </p>
     }
     else
     {
         <figure class="history-chart">
             <svg viewBox="0 0 830 280" role="img" aria-labelledby="trend-title">
-                <title id="trend-title">Temperature history for @DeviceId</title>
+                <title id="trend-title">@Selected.Label history for @DeviceId (@Selected.Unit)</title>
                 <g class="chart-grid">
                     <path d="M64 26H784 M64 77H784 M64 128H784 M64 179H784 M64 230H784" />
                 </g>
@@ -65,7 +84,7 @@
                     {
                         var fraction = tick / 4.0;
                         var value = (1 - fraction) * maximum + fraction * minimum;
-                        <g><text x="55" y="@(30 + tick * 51)">@(value.ToString("G4", CultureInfo.InvariantCulture))°</text></g>
+                        <g><text x="55" y="@(30 + tick * 51)">@(value.ToString("G4", CultureInfo.InvariantCulture))</text></g>
                     }
                 </g>
                 <g class="chart-labels" text-anchor="middle">
@@ -75,31 +94,36 @@
                         <g><text x="@(64 + tick * 180)" y="263">@time.ToString(AxisFormat, CultureInfo.InvariantCulture)</text></g>
                     }
                 </g>
-                @if (readings.Count > 1)
+                @foreach (var segment in segments)
                 {
-                    <polyline class="chart-trend" points="@points" />
+                    <polyline class="chart-trend" points="@segment" />
                 }
-                @if (readings.Count <= 48)
+                @if (chartReadings.Count > 0)
                 {
                     <g class="chart-points">
-                        @foreach (var measurement in readings)
+                        @foreach (var measurement in chartReadings.Count <= 48 ? chartReadings : isolatedReadings)
                         {
                             <circle cx="@Coordinate(X(measurement))" cy="@Coordinate(Y(measurement))" r="4">
-                                <title>@measurement.Timestamp.ToString("MMM d, HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) · @measurement.TemperatureF.ToString("G", CultureInfo.InvariantCulture) °F</title>
+                                <title>@measurement.Timestamp.ToString("MMM d, HH:mm:ss 'UTC'", CultureInfo.InvariantCulture) · @Selected.Value(measurement)!.Value.ToString("G", CultureInfo.InvariantCulture) @Selected.Unit</title>
                             </circle>
                         }
                     </g>
                 }
             </svg>
             <figcaption>
-                @readings.Count @(readings.Count == 1 ? "reading" : "readings")
+                @chartReadings.Count @(chartReadings.Count == 1 ? "reading" : "readings")
                 · @RangeCaption
+                @if (readings.Count > chartReadings.Count)
+                {
+                    <span> · @(readings.Count - chartReadings.Count) unavailable pH readings omitted; gaps indicate missing values.</span>
+                }
             </figcaption>
         </figure>
     }
 </section>
 
 @code {
+    [Parameter] public string? Metric { get; set; }
     [Parameter] public string? DeviceId { get; set; }
     [Parameter] public string Range { get; set; } = "1";
     [Parameter] public string? FromDate { get; set; }
@@ -108,13 +132,25 @@
     private static readonly (string Key, string Label)[] Presets =
         [("1", "Last 24h"), ("7", "7 days"), ("month", "1 month"), ("half-year", "6 months"), ("year", "1 year")];
 
+    private sealed record Measurement(string Key, string Label, string Unit, Func<MeasurementRequest, double?> Value);
+    private static readonly Measurement[] Measurements =
+    [
+        new("temperature", "Temperature", "°F", item => item.TemperatureF),
+        new("humidity", "Relative humidity", "%", item => item.HumidityPercent),
+        new("wind", "Wind speed", "mph", item => item.WindSpeedMph),
+        new("rainfall", "Rainfall rate", "in/hr", item => item.RainfallRateInHr),
+        new("ph", "Rainfall pH (experimental)", "pH", item => item.RainfallPH)
+    ];
+    private Measurement Selected => Measurements.FirstOrDefault(item => item.Key == Metric) ?? Measurements[0];
     private IReadOnlyList<MeasurementRequest> readings = [];
+    private IReadOnlyList<MeasurementRequest> chartReadings = [];
     private DateTimeOffset from;
     private DateTimeOffset to;
     private double minimum;
     private double maximum;
     private double scale;
-    private string points = "";
+    private readonly List<string> segments = [];
+    private IReadOnlyList<MeasurementRequest> isolatedReadings = [];
     private string? rangeError;
     private string AxisFormat => (to - from).TotalDays <= 1 ? "HH:mm"
         : (to - from).TotalDays >= 365 ? "MMM yy" : "MMM d";
@@ -126,6 +162,9 @@
     {
         rangeError = null;
         readings = [];
+        chartReadings = [];
+        segments.Clear();
+        isolatedReadings = [];
         if (Range == "custom")
         {
             if (!DateOnly.TryParseExact(FromDate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var start) ||
@@ -152,11 +191,12 @@
             };
         }
         readings = DeviceId is null ? [] : Store.GetHistory(DeviceId, from, to);
-        if (readings.Count == 0)
+        chartReadings = readings.Where(item => Selected.Value(item).HasValue).ToList();
+        if (chartReadings.Count == 0)
             return;
 
-        minimum = readings.Min(item => item.TemperatureF);
-        maximum = readings.Max(item => item.TemperatureF);
+        minimum = chartReadings.Min(item => Selected.Value(item)!.Value);
+        maximum = chartReadings.Max(item => Selected.Value(item)!.Value);
         if (minimum == maximum && Math.Abs(minimum) < 1e12)
         {
             minimum -= 1;
@@ -165,7 +205,22 @@
 
         // Scale before subtracting so even extreme finite readings yield valid coordinates.
         scale = Math.Max(1, Math.Max(Math.Abs(minimum), Math.Abs(maximum)));
-        points = string.Join(" ", readings.Select(item => $"{Coordinate(X(item))},{Coordinate(Y(item))}"));
+        // Keep missing pH values as gaps instead of drawing a line across them.
+        var current = new List<string>();
+        void FinishSegment()
+        {
+            if (current.Count > 0) segments.Add(string.Join(" ", current));
+            current.Clear();
+        }
+        foreach (var item in readings)
+        {
+            if (!Selected.Value(item).HasValue) FinishSegment();
+            else current.Add($"{Coordinate(X(item))},{Coordinate(Y(item))}");
+        }
+        FinishSegment();
+        isolatedReadings = readings.Where((item, index) => Selected.Value(item).HasValue &&
+            (index == 0 || !Selected.Value(readings[index - 1]).HasValue) &&
+            (index == readings.Count - 1 || !Selected.Value(readings[index + 1]).HasValue)).ToList();
     }
 
     private double X(MeasurementRequest item) =>
@@ -174,7 +229,7 @@
     private double Y(MeasurementRequest item)
     {
         var span = maximum / scale - minimum / scale;
-        return span == 0 ? 128 : 230 - 204 * (item.TemperatureF / scale - minimum / scale) / span;
+        return span == 0 ? 128 : 230 - 204 * (Selected.Value(item)!.Value / scale - minimum / scale) / span;
     }
 
     private static string Coordinate(double value) =>
