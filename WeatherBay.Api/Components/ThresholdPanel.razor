@@ -1,0 +1,131 @@
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using WeatherBay.Api.Models
+@using WeatherBay.Api.Storage
+@inject ThresholdStore Thresholds
+
+<section class="panel detail-panel" id="alerts" aria-labelledby="alerts-heading">
+    <h2 id="alerts-heading">Thresholds &amp; Warnings</h2>
+    <p class="panel-subtitle">Limits for @DeviceId &middot; latest saved reading</p>
+    @if (DeviceId is null)
+    {
+        <p class="threshold-notice">Send a measurement to configure a bay's limits.</p>
+    }
+    else
+    {
+        @if (saved)
+        {
+            <p class="threshold-saved" role="status">Thresholds saved for @DeviceId.</p>
+        }
+        @if (!configured.HasLimits)
+        {
+            <p class="threshold-notice">No thresholds configured for this bay.</p>
+        }
+        else if (Reading is null)
+        {
+            <p class="threshold-notice">Waiting for a saved reading to check these limits.</p>
+        }
+        else if (warnings.Count == 0)
+        {
+            <p class="alert-status">Latest reading is within configured limits.</p>
+        }
+        else
+        {
+            <div class="threshold-warning" role="status">
+                <strong>Latest reading is outside configured limits</strong>
+                <ul>
+                    @foreach (var warning in warnings)
+                    {
+                        <li>@warning</li>
+                    }
+                </ul>
+            </div>
+        }
+        <details class="threshold-editor" open>
+            <summary>Manage thresholds</summary>
+            <p class="panel-subtitle">Leave a field blank to disable that limit. Values on a limit are within range.</p>
+            <EditForm Model="Model" OnSubmit="Save" FormName="thresholds">
+                @if (errors.Count > 0)
+                {
+                    <div class="validation-errors" role="alert">
+                        <p>Your saved thresholds have not changed.</p>
+                        <ul>@foreach (var error in errors) { <li>@error</li> }</ul>
+                    </div>
+                }
+                <fieldset>
+                    <legend>Temperature (&deg;F)</legend>
+                    <label for="TemperatureMin">Lower
+                        <InputText type="number" id="TemperatureMin" @bind-Value="Model!.TemperatureMin" step="any" />
+                    </label>
+                    <label for="TemperatureMax">Upper
+                        <InputText type="number" id="TemperatureMax" @bind-Value="Model!.TemperatureMax" step="any" />
+                    </label>
+                </fieldset>
+                <fieldset>
+                    <legend>Relative humidity (%)</legend>
+                    <label for="HumidityMin">Lower
+                        <InputText type="number" id="HumidityMin" @bind-Value="Model!.HumidityMin" step="any" min="0" max="100" />
+                    </label>
+                    <label for="HumidityMax">Upper
+                        <InputText type="number" id="HumidityMax" @bind-Value="Model!.HumidityMax" step="any" min="0" max="100" />
+                    </label>
+                </fieldset>
+                <fieldset>
+                    <legend>Wind speed (mph)</legend>
+                    <label for="WindMin">Lower
+                        <InputText type="number" id="WindMin" @bind-Value="Model!.WindMin" step="any" min="0" />
+                    </label>
+                    <label for="WindMax">Upper
+                        <InputText type="number" id="WindMax" @bind-Value="Model!.WindMax" step="any" min="0" />
+                    </label>
+                </fieldset>
+                <fieldset>
+                    <legend>Rainfall rate (in/hr)</legend>
+                    <label for="RainfallMin">Lower
+                        <InputText type="number" id="RainfallMin" @bind-Value="Model!.RainfallMin" step="any" min="0" />
+                    </label>
+                    <label for="RainfallMax">Upper
+                        <InputText type="number" id="RainfallMax" @bind-Value="Model!.RainfallMax" step="any" min="0" />
+                    </label>
+                </fieldset>
+                <button class="manage-button" type="submit">Save thresholds</button>
+            </EditForm>
+        </details>
+        <p class="panel-subtitle">Warnings update when you load or refresh this page. Email notifications are not enabled.</p>
+    }
+</section>
+
+@code {
+    [Parameter] public string? DeviceId { get; set; }
+    [Parameter] public MeasurementRequest? Reading { get; set; }
+    [SupplyParameterFromForm(FormName = "thresholds")]
+    private ThresholdForm? Model { get; set; }
+    private ThresholdSettings configured = new();
+    private IReadOnlyList<string> warnings = [];
+    private bool saved;
+    private List<string> errors = [];
+    [CascadingParameter] private FormMappingContext? MappingContext { get; set; }
+
+    protected override void OnParametersSet()
+    {
+        configured = DeviceId is null ? new() : Thresholds.Get(DeviceId);
+        Model ??= ThresholdForm.FromSettings(configured);
+        warnings = Reading is null ? [] : configured.Evaluate(Reading);
+    }
+
+    private void Save()
+    {
+        if (DeviceId is null || Model is null) return;
+        // Static form mapping can leave an invalid nullable number as null. Never save partial mappings.
+        if (MappingContext?.GetAllErrors("thresholds")?.Any() == true)
+        {
+            errors = ["Enter valid numbers or leave limits blank."];
+            return;
+        }
+        if (!Model.TryGetSettings(out var settings, out errors)) return;
+        Thresholds.Save(DeviceId, settings);
+        configured = settings;
+        warnings = Reading is null ? [] : configured.Evaluate(Reading);
+        saved = true;
+    }
+}

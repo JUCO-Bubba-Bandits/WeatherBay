@@ -112,3 +112,9 @@ Send `GET /api/devices` to populate the dashboard's bay selector. It returns **H
 ## Source control
 
 Build output, Visual Studio user files, local configuration, and certificate files are excluded by `.gitignore`. Keep future API keys and other secrets outside tracked files, using development User Secrets or environment variables.
+
+## Thresholds and dashboard warnings
+
+Under **Thresholds & Warnings**, set optional lower and upper limits for temperature (°F), humidity (%), wind speed (mph), and rainfall rate (in/hr). Limits are saved separately for each bay in the SQLite database and survive restarts. All limits start disabled. Clear a field and save to disable that bound; clear all fields to disable warnings for the bay.
+
+The dashboard compares the latest saved reading against saved limits whenever the page loads or thresholds are saved. Values exactly on a limit are within range. Both limits can be equal. Lower limits cannot exceed upper limits. Humidity limits must be between 0 and 100; wind and rainfall limits must be nonnegative. Invalid submissions do not replace saved settings. These are dashboard warnings, with no email delivery or automatic page refresh yet. Experimental rainfall pH is not included.

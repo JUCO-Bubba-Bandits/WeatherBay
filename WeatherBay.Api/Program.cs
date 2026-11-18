@@ -7,6 +7,7 @@ var databasePath = Path.GetFullPath(
     builder.Configuration["Storage:DatabasePath"] ?? "App_Data/weatherbay.db",
     builder.Environment.ContentRootPath);
 builder.Services.AddSingleton(new MeasurementStore(databasePath));
+builder.Services.AddSingleton(new ThresholdStore(databasePath));
 builder.Services.AddRazorComponents();
 
 builder.Services.AddControllers().AddJsonOptions(options =>
@@ -18,6 +19,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 
 var app = builder.Build();
 app.Services.GetRequiredService<MeasurementStore>().Initialize();
+app.Services.GetRequiredService<ThresholdStore>().Initialize();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();

@@ -134,3 +134,19 @@ h1, h2, p, figure, dl, dd { margin: 0; }
     .history-panel, .detail-panel { padding: 16px; }
     .chart-labels { font-size: 21px; }
 }
+
+/* Threshold settings */
+.threshold-notice, .threshold-saved, .threshold-warning { margin: 14px 0; padding: 12px; border-radius: 9px; font-size: 14px; overflow-wrap: anywhere; }
+.threshold-notice { background: #edf3f6; color: #456379; }
+.threshold-saved { background: #eaf7f3; color: #206957; }
+.threshold-warning { background: #fff1de; color: #80410d; border-left: 4px solid #c77519; }
+.threshold-warning ul { margin: 8px 0 0; padding-left: 20px; }
+.threshold-warning li + li { margin-top: 6px; }
+.threshold-editor summary { padding: 10px; background: #e8f0f5; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 700; }
+.threshold-editor fieldset { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; min-width: 0; margin: 14px 0; border: 1px solid #c6d5dd; border-radius: 8px; padding: 10px; }
+.threshold-editor legend { font-size: 13px; font-weight: 700; padding: 0 4px; }
+.threshold-editor label { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
+.threshold-editor input { width: 100%; min-width: 0; font: inherit; color: #17384d; background: #fff; padding: 8px; border: 1px solid #8da5b4; border-radius: 5px; }
+.threshold-editor input:focus-visible, .threshold-editor summary:focus-visible { outline: 3px solid #27adad; outline-offset: 3px; }
+.threshold-editor .manage-button { cursor: pointer; background: #c6efed; color: #163b4d; }
+.validation-errors, .validation-message { color: #a52b25; font-size: 14px; }
